@@ -5,21 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Deutsch → Englisch Wörter-Quiz</title>
   <style>
-    :root { font-family: system-ui, Arial, sans-serif; }
-    body { margin: 0; background:#0f0f12; color:#fff; min-height:100vh; display:flex; }
-    .wrap { width:100%; max-width:820px; margin:0 auto; padding:18px; display:flex; flex-direction:column; gap:14px; }
+    :root { font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    body { margin:0; background:#0f0f12; color:#fff; min-height:100vh; }
+    .wrap { width:100%; max-width:920px; margin:0 auto; padding:18px; display:flex; flex-direction:column; gap:14px; min-height:100vh; }
 
-    .topbar { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .topbar { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
     .pill { background:#1b1b22; padding:10px 12px; border-radius:14px; border:1px solid #242433; }
     .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
 
-    .hearts { letter-spacing: 2px; font-size: 22px; color:#ff2b2b; }
+    .hearts { letter-spacing:2px; font-size:22px; color:#ff2b2b; }
+
     .card { background:#15151c; border:1px solid #242433; border-radius:18px; padding:16px; }
     .word { font-size:40px; font-weight:900; margin:0 0 10px 0; }
     .hint { opacity:.9; margin:0 0 12px 0; }
     .muted { opacity:.8; }
+    .small { font-size:13px; opacity:.8; }
 
-    input[type="text"], input[type="password"], textarea{
+    input[type="text"], textarea{
       width:100%; box-sizing:border-box;
       padding:14px 12px; border-radius:14px; border:1px solid #2a2a3a;
       background:#0f0f12; color:#fff; font-size:18px;
@@ -38,74 +40,130 @@
 
     .footer { margin-top:auto; padding:10px 0 4px; opacity:.65; font-size:13px; text-align:center; }
 
-    /* Overlay screens */
-    .overlay {
-      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-      background:rgba(0,0,0,.55); padding:20px; z-index:999;
-    }
-    .overlay.show { display:flex; }
-    .blue { background:#1565ff; }
-    .blue .box { background:transparent; border:0; }
+    /* Wrong answer flash */
+    body.wrongflash { background:#7a0b0b !important; }
 
-    .box{
-      width:min(760px, 100%); background:#0f0f12; border:1px solid #2a2a3a;
-      border-radius:22px; padding:20px;
+    /* Blue transition overlay */
+    .blueOverlay {
+      position:fixed; inset:0; display:none; z-index:1000;
+      background:#1565ff;
+      align-items:center; justify-content:center;
+      padding:20px;
     }
+    .blueOverlay.show { display:flex; }
+    .blueBox{ width:min(820px, 100%); text-align:center; color:#fff; }
     .big { font-size:26px; font-weight:900; margin:0 0 10px 0; }
 
-    /* Admin mode */
-    body.admin { background:#2a1a00; } /* orange-ish */
-    body.admin .card { border-color:#ff9a3c55; }
-    body.admin .pill { border-color:#ff9a3c55; }
-    .admin-badge {
-      display:inline-flex; align-items:center; gap:8px;
-      background:#1b1b22; border:1px solid #242433; padding:10px 12px; border-radius:14px;
-      user-select:none;
+    /* Final overlay */
+    .centerOverlay {
+      display:none;
+      position:fixed; inset:0; z-index:1000;
+      background:rgba(0,0,0,.55);
+      align-items:center; justify-content:center;
+      padding:20px;
     }
-    .dot { width:10px; height:10px; border-radius:999px; background:#666; }
-    body.admin .dot { background:#ff9a3c; }
-    .admin-panel { display:none; }
-    body.admin .admin-panel { display:block; }
+    .centerOverlay.show { display:flex; }
+    .box{
+      width:min(820px, 100%);
+      background:#0f0f12; border:1px solid #2a2a3a;
+      border-radius:22px; padding:20px;
+    }
+
+    /* Top-right button */
+    .topRightBtn {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:#1b1b22;
+      border:1px solid #242433;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .topRightBtn b { font-weight:800; }
+
+    /* Bottom Sheet (Appsheet) */
+    .overlay { position:fixed; inset:0; display:none; z-index:999; }
+    .overlay.show { display:block; }
+
+    .sheetBackdrop{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.55);
+      opacity:0;
+      transition:opacity .18s ease;
+    }
+    .sheetBackdrop.show{ opacity:1; }
+
+    .sheet{
+      position:fixed; left:0; right:0; bottom:0;
+      transform: translateY(105%);
+      transition: transform .22s ease;
+      padding: 10px 12px 14px;
+    }
+    .sheet.show{ transform: translateY(0); }
+
+    .sheetInner{
+      width:min(920px, 100%);
+      margin:0 auto;
+      background:#0f0f12;
+      border:1px solid #2a2a3a;
+      border-radius:22px 22px 18px 18px;
+      box-shadow: 0 -10px 30px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .sheetHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 14px;
+      border-bottom:1px solid #242433;
+      background:#12121a;
+      position:relative;
+    }
+    .grabber{
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      top:8px;
+      width:46px;
+      height:5px;
+      border-radius:999px;
+      background:rgba(255,255,255,.18);
+    }
+    .sheetTitle{ font-weight:900; font-size:16px; }
+    .sheetBody{ padding:14px; max-height:72vh; overflow:auto; }
 
     table { width:100%; border-collapse:collapse; margin-top:10px; }
     th, td { text-align:left; padding:10px 8px; border-bottom:1px solid #2a2a3a; }
     th { opacity:.85; }
-    .small { font-size:13px; opacity:.8; }
-
-    /* Wrong answer flash */
-    body.wrongflash { background:#7a0b0b !important; }
-    body.admin.wrongflash { background:#7a0b0b !important; }
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <div class="topbar">
-      <div class="row">
-        <div class="pill row">
-          <div class="hearts" id="hearts">♥♥♥♥♥</div>
-          <div class="pill" style="background:#11111a;">
-            Richtig: <b id="correct">0</b>
-          </div>
-          <div class="pill" style="background:#11111a;">
-            Tipps: <b id="hints">0</b>
-          </div>
-          <div class="pill" style="background:#11111a;">
-            Modus: <b id="modeLabel">Normal</b>
-          </div>
+      <div class="pill row">
+        <div class="hearts" id="hearts">♥♥♥♥♥</div>
+        <div class="pill" style="background:#11111a;">
+          Richtig: <b id="correct">0</b>
+        </div>
+        <div class="pill" style="background:#11111a;">
+          Tipps: <b id="hints">0</b>
+        </div>
+        <div class="pill" style="background:#11111a;">
+          Wörter: <b id="wordCount">0</b>
         </div>
       </div>
 
-      <div class="row">
+      <div class="row" style="align-items:flex-start;">
         <div class="pill">
           Frage: <b id="progress">1</b>/<span id="total">0</span>
         </div>
 
-        <div class="admin-badge" id="adminBadge" title="Admin">
-          <span class="dot"></span>
-          <b>Admin</b>
-          <span class="small" id="adminStateText">(aus)</span>
-        </div>
+        <button class="topRightBtn" id="openSheetBtn" type="button" title="Wörter verwalten">
+          <span>➕</span> <b>Neue Wörter</b>
+        </button>
       </div>
     </div>
 
@@ -128,44 +186,19 @@
       </p>
     </div>
 
-    <!-- Admin panel -->
-    <div class="card admin-panel">
-      <h3 style="margin:0 0 10px 0;">Admin Panel</h3>
-      <p class="muted" style="margin:0 0 12px 0;">
-        Neue Wörter als Liste einfügen: <b>Deutsch = Englisch</b> (eine Zeile pro Wortpaar).
-        Nur eigene Wörter sind löschbar.
-      </p>
-
-      <label class="small">Neue Wörter</label>
-      <textarea id="newWordsList" placeholder="Apfel = apple
-Haus = house
-Wasser = water"></textarea>
-
-      <div class="btns">
-        <button class="primary" id="addWordBtn">Wörter hinzufügen</button>
-        <button id="refreshListBtn">Liste aktualisieren</button>
-        <button class="danger" id="clearCustomBtn" title="Nur eigene (Custom) Wörter löschen">Eigene Wörter löschen</button>
-        <button id="adminOffBtn">Admin ausschalten</button>
-      </div>
-
-      <p id="adminMsg" class="muted" style="margin:10px 0 0 0;"></p>
-
-      <div id="wordListWrap" style="margin-top:12px;"></div>
-    </div>
-
     <div class="footer">dieser Seite wurde durch Mahir erstellt</div>
   </div>
 
-  <!-- Blue screen before wrong words round -->
-  <div class="overlay blue" id="blueOverlay">
-    <div class="box" style="text-align:center;color:#fff;">
+  <!-- Blue screen -->
+  <div class="blueOverlay" id="blueOverlay">
+    <div class="blueBox">
       <p class="big">Jetzt kommen die Wörter, die du falsch hattest</p>
       <p class="muted" id="wrongCountText"></p>
     </div>
   </div>
 
-  <!-- Final screen -->
-  <div class="overlay" id="finalOverlay">
+  <!-- Final overlay -->
+  <div class="centerOverlay" id="finalOverlay">
     <div class="box" style="text-align:center;">
       <p class="big" id="finalTitle">Fertig</p>
       <p class="muted" id="finalText"></p>
@@ -177,27 +210,55 @@ Wasser = water"></textarea>
     </div>
   </div>
 
-  <!-- Admin login overlay -->
-  <div class="overlay" id="loginOverlay">
-    <div class="box">
-      <p class="big">Admin Login</p>
-      <p class="muted">Passwort eingeben:</p>
-      <input id="adminPass" type="password" placeholder="Passwort" />
-      <div class="btns">
-        <button class="primary" id="loginBtn">Einloggen</button>
-        <button id="cancelLoginBtn">Abbrechen</button>
+  <!-- Bottom Sheet -->
+  <div class="overlay" id="sheetOverlay" aria-hidden="true">
+    <div class="sheetBackdrop" id="sheetBackdrop"></div>
+
+    <div class="sheet" id="sheet">
+      <div class="sheetInner">
+        <div class="sheetHeader">
+          <div class="grabber"></div>
+          <div>
+            <div class="sheetTitle">Wörterverwaltung</div>
+            <div class="small">Format: <b>Deutsch = Englisch</b> (eine Zeile pro Paar)</div>
+          </div>
+          <button id="closeSheetBtn" type="button">Schließen</button>
+        </div>
+
+        <div class="sheetBody">
+          <label class="small">Neue Wörter</label>
+          <textarea id="newWordsList" placeholder="Apfel = apple
+Haus = house
+Wasser = water"></textarea>
+
+          <div class="btns">
+            <button class="primary" id="addWordsBtn" type="button">Wörter hinzufügen</button>
+            <button id="refreshBtn" type="button">Liste aktualisieren</button>
+            <button class="danger" id="resetBtn" type="button">Auf Standard zurücksetzen</button>
+            <button id="restartQuizBtn" type="button">Quiz neu starten</button>
+          </div>
+
+          <p id="panelMsg" class="muted" style="margin:10px 0 0 0;"></p>
+
+          <div id="wordListWrap" style="margin-top:12px;"></div>
+
+          <p class="small" style="margin-top:12px;">
+            Hinweis: Änderungen gelten nur in deinem Browser (LocalStorage).
+          </p>
+        </div>
       </div>
-      <p class="muted" id="loginMsg" style="margin:10px 0 0 0;"></p>
     </div>
   </div>
 
 <script>
 /** =========================
- *  Settings / Storage
+ *  Storage (LOCAL)
  *  ========================= */
-const ADMIN_PASSWORD = "4434";
-const STORAGE_KEY_CUSTOM = "custom_words_v2"; // saved custom words only
+const STORAGE_KEY_WORDS = "words_all_v3";
 
+/** =========================
+ *  Settings
+ *  ========================= */
 const MAX_LIVES = 5;
 const CORRECT_FOR_HINT = 10;
 
@@ -220,26 +281,43 @@ const DEFAULT_WORDS = [
 ];
 
 function normalize(s){ return (s ?? "").trim().toLowerCase(); }
-function safeParse(json, fallback){
-  try { return JSON.parse(json); } catch { return fallback; }
+function safeParse(json, fallback){ try { return JSON.parse(json); } catch { return fallback; } }
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
-function loadCustomWords(){
-  return safeParse(localStorage.getItem(STORAGE_KEY_CUSTOM) || "[]", []);
+/** Seed defaults into storage ONCE so defaults are deletable */
+function seedIfEmpty(){
+  const stored = localStorage.getItem(STORAGE_KEY_WORDS);
+  if (!stored) {
+    localStorage.setItem(STORAGE_KEY_WORDS, JSON.stringify(DEFAULT_WORDS));
+    return;
+  }
+  const parsed = safeParse(stored, null);
+  if (!Array.isArray(parsed)) {
+    localStorage.setItem(STORAGE_KEY_WORDS, JSON.stringify(DEFAULT_WORDS));
+  }
 }
-function saveCustomWords(arr){
-  localStorage.setItem(STORAGE_KEY_CUSTOM, JSON.stringify(arr));
+function loadWords(){
+  seedIfEmpty();
+  const words = safeParse(localStorage.getItem(STORAGE_KEY_WORDS) || "[]", []);
+  return words
+    .filter(w => w && typeof w.prompt === "string" && typeof w.answer === "string")
+    .map(w => ({ prompt: w.prompt.trim(), answer: normalize(w.answer) }))
+    .filter(w => w.prompt && w.answer);
 }
-function loadAllWords(){
-  const custom = loadCustomWords();
-  return [...DEFAULT_WORDS, ...custom];
+function saveWords(words){
+  localStorage.setItem(STORAGE_KEY_WORDS, JSON.stringify(words));
 }
 
 /** =========================
- *  State
+ *  Game state
  *  ========================= */
-let isAdmin = false;
-
 let lives = MAX_LIVES;
 let correctTotal = 0;
 let correctSinceLastHint = 0;
@@ -253,14 +331,14 @@ let hintShown = false;
 let locked = false;
 
 /** =========================
- *  UI elements
+ *  UI refs
  *  ========================= */
 const heartsEl = document.getElementById("hearts");
 const correctEl = document.getElementById("correct");
 const hintsEl = document.getElementById("hints");
 const progressEl = document.getElementById("progress");
 const totalEl = document.getElementById("total");
-const modeLabel = document.getElementById("modeLabel");
+const wordCountEl = document.getElementById("wordCount");
 
 const questionWordEl = document.getElementById("questionWord");
 const hintLineEl = document.getElementById("hintLine");
@@ -281,35 +359,23 @@ const exitBtn = document.getElementById("exitBtn");
 const continueBtn = document.getElementById("continueBtn");
 const repeatBtn = document.getElementById("repeatBtn");
 
-/* Admin UI */
-const adminBadge = document.getElementById("adminBadge");
-const adminStateText = document.getElementById("adminStateText");
-
-const loginOverlay = document.getElementById("loginOverlay");
-const adminPass = document.getElementById("adminPass");
-const loginBtn = document.getElementById("loginBtn");
-const cancelLoginBtn = document.getElementById("cancelLoginBtn");
-const loginMsg = document.getElementById("loginMsg");
+/** Sheet refs */
+const openSheetBtn = document.getElementById("openSheetBtn");
+const sheetOverlay = document.getElementById("sheetOverlay");
+const sheetBackdrop = document.getElementById("sheetBackdrop");
+const sheet = document.getElementById("sheet");
+const closeSheetBtn = document.getElementById("closeSheetBtn");
 
 const newWordsList = document.getElementById("newWordsList");
-const addWordBtn = document.getElementById("addWordBtn");
-const refreshListBtn = document.getElementById("refreshListBtn");
-const clearCustomBtn = document.getElementById("clearCustomBtn");
-const adminOffBtn = document.getElementById("adminOffBtn");
-const adminMsg = document.getElementById("adminMsg");
+const addWordsBtn = document.getElementById("addWordsBtn");
+const refreshBtn = document.getElementById("refreshBtn");
+const resetBtn = document.getElementById("resetBtn");
+const restartQuizBtn = document.getElementById("restartQuizBtn");
+const panelMsg = document.getElementById("panelMsg");
 const wordListWrap = document.getElementById("wordListWrap");
 
-/** =========================
- *  UI helpers
- *  ========================= */
 function setMessage(text){ msgEl.textContent = text; }
-function setAdminMessage(text){ adminMsg.textContent = text; }
-
-function updateModeUI(){
-  document.body.classList.toggle("admin", isAdmin);
-  adminStateText.textContent = isAdmin ? "(an)" : "(aus)";
-  modeLabel.textContent = isAdmin ? "Admin" : "Normal";
-}
+function setPanelMessage(text){ panelMsg.textContent = text; }
 
 function updateTopUI(){
   heartsEl.textContent = "♥".repeat(lives) + "♡".repeat(Math.max(0, MAX_LIVES - lives));
@@ -317,12 +383,11 @@ function updateTopUI(){
   hintsEl.textContent = String(hintsAvailable);
   progressEl.textContent = String(index + 1);
   totalEl.textContent = String(pool.length);
+  wordCountEl.textContent = String(loadWords().length);
 
   hintBtn.disabled = (hintsAvailable <= 0) || hintShown || locked;
   skipBtn.disabled = locked;
 }
-
-function currentItem(){ return pool[index]; }
 
 function shuffle(arr){
   for (let i = arr.length - 1; i > 0; i--) {
@@ -331,11 +396,11 @@ function shuffle(arr){
   }
   return arr;
 }
-
 function flashWrong(){
   document.body.classList.add("wrongflash");
   setTimeout(() => document.body.classList.remove("wrongflash"), 250);
 }
+function currentItem(){ return pool[index]; }
 
 /** =========================
  *  Game flow
@@ -349,7 +414,7 @@ function renderQuestion(){
   answerEl.focus();
 
   const item = currentItem();
-  questionWordEl.textContent = item.prompt;
+  questionWordEl.textContent = item?.prompt ?? "(keine Wörter)";
   setMessage("");
   updateTopUI();
 }
@@ -362,9 +427,8 @@ function awardHintIfNeeded(){
 }
 
 function markWrong(item){
-  if (!wrongPool.some(x => x.prompt === item.prompt && x.answer === item.answer)) {
-    wrongPool.push(item);
-  }
+  if (!item) return;
+  if (!wrongPool.some(x => x.prompt === item.prompt && x.answer === item.answer)) wrongPool.push(item);
 }
 
 function nextStep(){
@@ -376,23 +440,17 @@ function nextStep(){
 function showBlueThenRetryWrong(){
   blueOverlay.classList.add("show");
   wrongCountText.textContent = `Falsche Wörter: ${wrongPool.length}`;
-
   setTimeout(() => {
     blueOverlay.classList.remove("show");
-
     pool = [...wrongPool];
     wrongPool = [];
     index = 0;
-
     renderQuestion();
   }, 3000);
 }
 
 function endOfRound(){
-  if (wrongPool.length > 0) {
-    showBlueThenRetryWrong();
-    return;
-  }
+  if (wrongPool.length > 0) { showBlueThenRetryWrong(); return; }
   showFinalSuccess();
 }
 
@@ -401,7 +459,6 @@ function showFinalSuccess(){
   finalText.textContent = `Richtig insgesamt: ${correctTotal}. Herzen übrig: ${lives}.`;
   finalOverlay.classList.add("show");
 }
-
 function showFinalFail(){
   finalTitle.textContent = "Game Over";
   finalText.textContent = "Du hast keine Herzen mehr.";
@@ -417,6 +474,8 @@ function checkAnswer(){
   updateTopUI();
 
   const item = currentItem();
+  if (!item) { locked = false; return; }
+
   const user = normalize(answerEl.value);
   const expected = normalize(item.answer);
 
@@ -439,10 +498,7 @@ function checkAnswer(){
     lives--;
     markWrong(item);
 
-    if (lives <= 0) {
-      setTimeout(showFinalFail, 500);
-      return;
-    }
+    if (lives <= 0) { setTimeout(showFinalFail, 500); return; }
     setTimeout(nextStep, 550);
   }
 }
@@ -453,7 +509,7 @@ function useHint(){
   if (hintShown) return;
 
   const item = currentItem();
-  const first2 = (item.answer || "").slice(0,2);
+  const first2 = (item?.answer || "").slice(0,2);
   hintLineEl.textContent = `Tipp: beginnt mit "${first2}"`;
   hintLineEl.style.display = "block";
   hintShown = true;
@@ -476,67 +532,51 @@ exitBtn.addEventListener("click", () => {
   finalOverlay.classList.remove("show");
   alert("Du kannst den Tab jetzt schließen.");
 });
-
 continueBtn.addEventListener("click", () => {
   finalOverlay.classList.remove("show");
   startGame({ resetProgress:false });
 });
-
 repeatBtn.addEventListener("click", () => {
   finalOverlay.classList.remove("show");
   startGame({ resetProgress:true });
 });
 
 /** =========================
- *  Admin login / panel
+ *  Bottom sheet open/close
  *  ========================= */
-function openLogin(){
-  loginMsg.textContent = "";
-  adminPass.value = "";
-  loginOverlay.classList.add("show");
-  setTimeout(() => adminPass.focus(), 0);
+function openSheet(){
+  sheetOverlay.classList.add("show");
+  sheetBackdrop.classList.add("show");
+  sheet.classList.add("show");
+  sheetOverlay.setAttribute("aria-hidden", "false");
+  renderWordList();
+  setPanelMessage("");
+  setTimeout(() => newWordsList.focus(), 50);
 }
-function closeLogin(){
-  loginOverlay.classList.remove("show");
+function closeSheet(){
+  sheetBackdrop.classList.remove("show");
+  sheet.classList.remove("show");
+  sheetOverlay.setAttribute("aria-hidden", "true");
+  setTimeout(() => sheetOverlay.classList.remove("show"), 220);
+  setTimeout(() => answerEl.focus(), 240);
+
+  // ✅ Automatisch neu laden, damit neue Wörter sofort gefragt werden
+  location.reload();
 }
 
-function setAdmin(on){
-  isAdmin = on;
-  updateModeUI();
-  if (isAdmin) {
-    renderWordList();
-    setAdminMessage("Admin-Modus aktiv.");
-  } else {
-    setAdminMessage("");
-  }
-}
-
-adminBadge.addEventListener("click", () => {
-  if (isAdmin) { setAdmin(false); return; }
-  openLogin();
+openSheetBtn.addEventListener("click", openSheet);
+closeSheetBtn.addEventListener("click", closeSheet);
+sheetBackdrop.addEventListener("click", closeSheet);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && sheetOverlay.classList.contains("show")) closeSheet();
 });
 
-loginBtn.addEventListener("click", () => {
-  const pw = adminPass.value.trim();
-  if (pw === ADMIN_PASSWORD) {
-    closeLogin();
-    setAdmin(true);
-  } else {
-    loginMsg.textContent = "Falsches Passwort.";
-  }
-});
-
-cancelLoginBtn.addEventListener("click", closeLogin);
-adminPass.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") loginBtn.click();
-});
-
-adminOffBtn.addEventListener("click", () => setAdmin(false));
-
+/** =========================
+ *  Words management
+ *  ========================= */
 function parseWordLines(text) {
   const lines = (text || "").split("\n").map(l => l.trim()).filter(Boolean);
   const pairs = [];
-
   for (const line of lines) {
     const parts = line.split("=").map(x => x.trim());
     if (parts.length !== 2) continue;
@@ -553,73 +593,66 @@ function addWordsFromList(){
   const pairs = parseWordLines(raw);
 
   if (pairs.length === 0) {
-    setAdminMessage("Keine gültigen Zeilen gefunden. Format: Deutsch = Englisch");
+    setPanelMessage("Keine gültigen Zeilen gefunden. Format: Deutsch = Englisch");
     return;
   }
 
-  const all = loadAllWords();
-  const custom = loadCustomWords();
-
-  let added = 0;
-  let skipped = 0;
+  const words = loadWords();
+  let added = 0, skipped = 0;
 
   for (const p of pairs) {
-    const exists = all.some(w =>
+    const exists = words.some(w =>
       normalize(w.prompt) === normalize(p.prompt) &&
       normalize(w.answer) === normalize(p.answer)
     );
     if (exists) { skipped++; continue; }
-    custom.push(p);
-    all.push(p);
+    words.push(p);
     added++;
   }
 
-  saveCustomWords(custom);
+  saveWords(words);
   newWordsList.value = "";
-  setAdminMessage(`Gespeichert: ${added} | Übersprungen (Duplikate/kaputt): ${skipped}`);
+  setPanelMessage(`Gespeichert: ${added} | Übersprungen: ${skipped}`);
   renderWordList();
+  updateTopUI();
 }
 
-addWordBtn.addEventListener("click", addWordsFromList);
-refreshListBtn.addEventListener("click", renderWordList);
-
-clearCustomBtn.addEventListener("click", () => {
-  saveCustomWords([]);
-  setAdminMessage("Alle eigenen Wörter gelöscht.");
+function deleteWordByIndex(idx){
+  const words = loadWords();
+  if (idx < 0 || idx >= words.length) return;
+  words.splice(idx, 1);
+  saveWords(words);
+  setPanelMessage("Wort gelöscht.");
   renderWordList();
-});
+  updateTopUI();
+}
 
-function deleteCustomWord(idx){
-  const custom = loadCustomWords();
-  if (idx < 0 || idx >= custom.length) return;
-  const removed = custom.splice(idx, 1)[0];
-  saveCustomWords(custom);
-  setAdminMessage(`Gelöscht: ${removed.prompt} → ${removed.answer}`);
+function resetToDefault(){
+  saveWords(DEFAULT_WORDS);
+  setPanelMessage("Zurückgesetzt auf Standard.");
   renderWordList();
+  updateTopUI();
 }
 
 function renderWordList(){
-  const custom = loadCustomWords();
-  const all = loadAllWords();
+  const words = loadWords();
+  if (words.length === 0) {
+    wordListWrap.innerHTML = `<div class="pill">Keine Wörter vorhanden.</div>`;
+    return;
+  }
 
-  const rows = all.map((w, i) => {
-    const isCustom = i >= DEFAULT_WORDS.length;
-    const deleteBtn = isCustom
-      ? `<button class="danger" data-del="${i-DEFAULT_WORDS.length}">Löschen</button>`
-      : `<span class="small muted">Default</span>`;
-    return `
-      <tr>
-        <td>${escapeHtml(w.prompt)}</td>
-        <td>${escapeHtml(w.answer)}</td>
-        <td>${deleteBtn}</td>
-      </tr>
-    `;
-  }).join("");
+  const rows = words.map((w, i) => `
+    <tr>
+      <td>${escapeHtml(w.prompt)}</td>
+      <td>${escapeHtml(w.answer)}</td>
+      <td><button class="danger" data-del="${i}" type="button">Löschen</button></td>
+    </tr>
+  `).join("");
 
   wordListWrap.innerHTML = `
     <div class="pill" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span>Wörter gesamt: <b>${all.length}</b> (Default: ${DEFAULT_WORDS.length}, Eigen: ${custom.length})</span>
-      <span class="small">Nur eigene Wörter sind löschbar.</span>
+      <span>Wörter gesamt: <b>${words.length}</b></span>
+      <span class="small">Änderungen gelten nur lokal.</span>
     </div>
     <table>
       <thead>
@@ -630,21 +663,14 @@ function renderWordList(){
   `;
 
   wordListWrap.querySelectorAll("button[data-del]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const idx = Number(btn.getAttribute("data-del"));
-      deleteCustomWord(idx);
-    });
+    btn.addEventListener("click", () => deleteWordByIndex(Number(btn.getAttribute("data-del"))));
   });
 }
 
-function escapeHtml(str){
-  return String(str)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
+addWordsBtn.addEventListener("click", addWordsFromList);
+refreshBtn.addEventListener("click", () => { renderWordList(); updateTopUI(); });
+resetBtn.addEventListener("click", resetToDefault);
+restartQuizBtn.addEventListener("click", () => startGame({ resetProgress:false }));
 
 /** =========================
  *  Quiz events
@@ -652,29 +678,27 @@ function escapeHtml(str){
 checkBtn.addEventListener("click", checkAnswer);
 hintBtn.addEventListener("click", useHint);
 skipBtn.addEventListener("click", skip);
-answerEl.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") checkAnswer();
-});
+answerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") checkAnswer(); });
 
 /** =========================
  *  Start
  *  ========================= */
 function startGame({ resetProgress }){
+  const words = loadWords();
   lives = MAX_LIVES;
   index = 0;
   wrongPool = [];
-  pool = shuffle(loadAllWords());
+  pool = shuffle([...words]);
 
   if (resetProgress) {
     correctTotal = 0;
     hintsAvailable = 0;
     correctSinceLastHint = 0;
   }
-
   renderQuestion();
 }
 
-setAdmin(false);
+renderWordList();
 startGame({ resetProgress:true });
 </script>
 </body>
